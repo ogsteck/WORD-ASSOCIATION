@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Word Association Pathfinder</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { margin: 5px; padding: 10px; font-size: 16px; }
+    #results { margin-top: 20px; }
+    .path { margin: 5px 0; padding-left: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Word Association Pathfinder (Client-Side BFS)</h2>
+  <input id="start" placeholder="Start word (cue)">
+  <input id="end" placeholder="End word (target)">
+  <button onclick="runSearch()">Find Paths</button>
+  <p><em>Note: Word associations are directional, based on the USF Free Association norms.</em></p>
+  <div id="results"></div>
+
+  <script>
+    let graph = {};
+
+    async function loadGraph() {
+      const response = await fetch("association_graph.json");
+      graph = await response.json();
+    }
+
+    function bfsAllPaths(start, end, maxDepth = 6) {
+      const queue = [[start]];
+      const paths = [];
+      while (queue.length > 0) {
+        const path = queue.shift();
+        const node = path[path.length - 1];
+        if (node === end) {
+          paths.push(path);
+          continue;
+        }
+        if (path.length >= maxDepth) continue;
+        const neighbors = graph[node] || [];
+        for (const neighbor of neighbors) {
+          if (!path.includes(neighbor)) {
+            queue.push([...path, neighbor]);
+          }
+        }
+      }
+      return paths;
+    }
+
+    function runSearch() {
+      const start = document.getElementById("start").value.trim().toLowerCase();
+      const end = document.getElementById("end").value.trim().toLowerCase();
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+
+      if (!graph[start]) {
+        resultsDiv.innerHTML = `<p>Start word "${start}" not found.</p>`;
+        return;
+      }
+      const paths = bfsAllPaths(start, end);
+      if (paths.length === 0) {
+        resultsDiv.innerHTML = `<p>No paths found from <strong>${start}</strong> to <strong>${end}</strong>.</p>`;
+      } else {
+        resultsDiv.innerHTML = `<p>Found ${paths.length} path(s):</p>` +
+          paths.map(p => `<div class="path">${p.join(" → ")}</div>`).join("");
+      }
+    }
+
+    loadGraph();
+  </script>
+</body>
+</html>
